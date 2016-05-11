@@ -13,14 +13,16 @@
 @property (strong, nonatomic)AVCaptureMetadataOutput * output;
 @property (strong, nonatomic)CAShapeLayer *mask;
 @property (strong, nonatomic)MFScanInterestView *scanInterestView;
-@property(strong, nonatomic)MFMetadataCallback metadataCallback;
-@property(strong, nonatomic)MFAVStatusDeniedCallback statusDeniedCallback;
+@property (strong, nonatomic)MFMetadataCallback metadataCallback;
+@property (strong, nonatomic)MFAVStatusDeniedCallback statusDeniedCallback;
+@property (nonatomic)BOOL isScanCodeFinish;
+
 @end
 
 @implementation MFScanQRView
 + (instancetype)scanQRViewWithFrame:(CGRect)frame withMetadataCallback:(MFMetadataCallback)metadataCallback withAVStatusDeniedCallback:(MFAVStatusDeniedCallback)statusDeniedCallback{
     MFScanQRView *view =[[MFScanQRView alloc] init];
-    
+    view.backgroundColor =[UIColor blackColor];
     [view setupWithFrame:frame withMetadataCallback:metadataCallback withAVStatusDeniedCallback:statusDeniedCallback];
     
     return view;
@@ -38,22 +40,33 @@
     self.metadataCallback =metadataCallback;
     
     self.statusDeniedCallback =statusDeniedCallback;
+    
     [self setupAV];
+    
+    [self addObserver:self forKeyPath:@"bounds" options:(NSKeyValueObservingOptionNew) context:nil];
     
     [self addObserver:self forKeyPath:@"frame" options:(NSKeyValueObservingOptionNew) context:nil];
 }
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSString *,id> *)change context:(void *)context{
-    if (![NSStringFromCGRect(_avLayer.frame) isEqualToString:NSStringFromCGRect(self.bounds)]&& self.translatesAutoresizingMaskIntoConstraints) {
+    
+    if (self.translatesAutoresizingMaskIntoConstraints ) {
         _avLayer.frame =self.bounds;
+    }
         [self updateOutputInterest];
 
-    }
+   
 }
-- (void)updateConstraints{
-    [self updateOutputInterest];
-    [super updateConstraints];
+
++(Class)layerClass{
+    return [AVCaptureVideoPreviewLayer class];
 }
+//- (void)updateConstraints{
+//    [super updateConstraints];
+//    [self updateOutputInterest];
+//
+//}
+
 - (void)setupAV{
 [self avStatusCallback:^(BOOL b) {
     if (b) {
@@ -75,18 +88,21 @@
         [_session addOutput:_output];
         
         _output.metadataObjectTypes=@[AVMetadataObjectTypeQRCode,AVMetadataObjectTypeEAN13Code, AVMetadataObjectTypeEAN8Code, AVMetadataObjectTypeCode128Code];
+        //_avLayer =[[AVCaptureVideoPreviewLayer alloc] init];
+        _avLayer =self.layer;
         
-        _avLayer = [AVCaptureVideoPreviewLayer layerWithSession:_session];
+        
+        [_avLayer setSession:_session];
         
         _avLayer.videoGravity=AVLayerVideoGravityResizeAspectFill;
         
-        _avLayer.frame=self.layer.bounds;
+        //_avLayer.frame=self.layer.bounds;
         
-        [self.layer addSublayer:_avLayer];
+        //[self.layer addSublayer:_avLayer];
         
         _mask = [CAShapeLayer layer];
         [_mask setFillRule:kCAFillRuleEvenOdd];
-        [_mask setFillColor:[[UIColor colorWithHue:0.0f saturation:0.0f brightness:0.0f alpha:0.2f] CGColor]];
+        [_mask setFillColor:[[UIColor colorWithHue:0.0f saturation:0.0f brightness:0.0f alpha:0.6f] CGColor]];
         [_avLayer addSublayer:_mask];
         
         
@@ -102,26 +118,40 @@
 
 
 - (void)updateOutputInterest{
+    CGFloat width =MIN(self.bounds.size.width, self.bounds.size.height)*0.6;
     if (_scanInterestView ==nil) {
         _scanInterestView =[MFScanInterestView scanInterestView];
         _scanInterestView.translatesAutoresizingMaskIntoConstraints =NO;
         
         [self addSubview:_scanInterestView];
-        
-        [self addConstraint:[NSLayoutConstraint constraintWithItem:_scanInterestView attribute:(NSLayoutAttributeCenterX) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeCenterX) multiplier:1 constant:0]];
-        [self addConstraint:[NSLayoutConstraint constraintWithItem:_scanInterestView attribute:(NSLayoutAttributeCenterY) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeCenterY) multiplier:1 constant:0]];
-        [self addConstraint:[NSLayoutConstraint constraintWithItem:_scanInterestView attribute:(NSLayoutAttributeWidth) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeWidth) multiplier:0 constant:MIN(self.frame.size.width, self.frame.size.height)*0.6]];
-        [self addConstraint:[NSLayoutConstraint constraintWithItem:_scanInterestView attribute:(NSLayoutAttributeHeight) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeHeight) multiplier:0 constant:MIN(self.frame.size.width, self.frame.size.height)*0.6]];
 
+        [self addConstraint:[NSLayoutConstraint constraintWithItem:_scanInterestView attribute:(NSLayoutAttributeCenterX) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeCenterX) multiplier:1 constant:0]];
+        
+        [self addConstraint:[NSLayoutConstraint constraintWithItem:_scanInterestView attribute:(NSLayoutAttributeCenterY) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeCenterY) multiplier:1 constant:0]];
+        
+        _scanInterestView.widthLayout =[NSLayoutConstraint constraintWithItem:_scanInterestView attribute:(NSLayoutAttributeWidth) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeWidth) multiplier:0 constant:width];
+        [self addConstraint:_scanInterestView.widthLayout];
+        
+        _scanInterestView.heightLayout =[NSLayoutConstraint constraintWithItem:_scanInterestView attribute:(NSLayoutAttributeHeight) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeHeight) multiplier:0 constant:width];
+        [self addConstraint:_scanInterestView.heightLayout];
+
+    }else{
+        
+    NSLayoutConstraint * interestViewWidth = _scanInterestView.widthLayout;
+    
+    NSLayoutConstraint * interestViewHeight = _scanInterestView.heightLayout;
+        
+        interestViewWidth.constant =interestViewHeight.constant =width;
+        
     }
     
-    CGRect rect =CGRectMake( 60, (self.bounds.size.height-self.frame.size.width -120 )/2, self.frame.size.width -120, self.frame.size.width -120);
+    CGRect rect =CGRectMake( (self.bounds.size.width -width)/2.f, (self.bounds.size.height-width)/2.f, width, width);
     
-    CGRect layerRect = [_avLayer metadataOutputRectOfInterestForRect:rect];
+   // CGRect layerRect = [_avLayer metadataOutputRectOfInterestForRect:rect];
     
-    _output.rectOfInterest =layerRect;
+    _output.rectOfInterest =CGRectMake(0.1, 0.1, 0.8, 0.8);
     
-    UIBezierPath *maskPath = [UIBezierPath bezierPathWithRect:_avLayer.bounds];
+    UIBezierPath *maskPath = [UIBezierPath bezierPathWithRect:CGRectMake(0, 0, MAX(self.bounds.size.width, self.bounds.size.height), MAX(self.bounds.size.width, self.bounds.size.height))];
     
     UIBezierPath *cutoutPath;
     
@@ -162,7 +192,7 @@
                                                       otherButtonTitles:nil];
                 [alert show];
             }
-            // The user has explicitly denied permission for media capture.
+
             callback(NO);
             return;
         }
@@ -170,7 +200,7 @@
             callback(YES);
             
         }else if(authStatus == AVAuthorizationStatusNotDetermined){
-            // Explicit user permission is required for media capture, but the user has not yet granted or denied such permission.
+
             [AVCaptureDevice requestAccessForMediaType:mediaType completionHandler:^(BOOL granted) {
                 if(granted){
                     callback(YES);
@@ -194,16 +224,38 @@
     
 }
 
+static SystemSoundID shake_sound_male_id = 0;
+
 -(void)captureOutput:(AVCaptureOutput *)captureOutput didOutputMetadataObjects:(NSArray *)metadataObjects fromConnection:(AVCaptureConnection *)connection{
-//    if (metadataObjects.count>0) {
-//        //[session stopRunning];
-//        AVMetadataMachineReadableCodeObject * metadataObject = [metadataObjects objectAtIndex : 0 ];
-//        //输出扫描字符串
-//        NSLog(@"%@",metadataObject.stringValue);
-//    }
+    if (metadataObjects.count>0) {
+        //[session stopRunning];
+        AVMetadataMachineReadableCodeObject * metadataObject = [metadataObjects objectAtIndex : 0 ];
+        //输出扫描字符串
+        NSLog(@"%@",metadataObject.stringValue);
+    }
+    
+    if (self.isScanCodeFinish) {
+        return;
+    }else{
+        self.isScanCodeFinish =YES;
+        
+        NSBundle *bundle = [NSBundle bundleForClass:self.class];
+        
+        NSURL *url = [bundle URLForResource:@"MFScanQR" withExtension:@"bundle"];
+        
+        NSBundle *audioBundle = [NSBundle bundleWithURL:url];
+        
+        AudioServicesCreateSystemSoundID((__bridge CFURLRef)[NSURL fileURLWithPath:[audioBundle pathForResource:@"qrcode_found" ofType:@"wav"]],&shake_sound_male_id);
+        AudioServicesPlaySystemSound(shake_sound_male_id);
+    }
+    
+    AudioServicesPlaySystemSound(shake_sound_male_id);
+    
     if (self.metadataCallback) {
         self.metadataCallback(captureOutput, metadataObjects, connection);
     }
+    
+    
 }
 
 
@@ -219,56 +271,133 @@
 #pragma mark MFScanInterestView
 
 @interface MFScanInterestView ()
-
+@property (strong, nonatomic)NSLayoutConstraint *lineY;
+@property (strong, nonatomic)UIImageView *line;
 @end
 
 @implementation MFScanInterestView
 + (instancetype)scanInterestView{
     MFScanInterestView *view =[[MFScanInterestView alloc] init];
+    
     [view setup];
+    
+    [view addObserver:view forKeyPath:@"bounds" options:(NSKeyValueObservingOptionNew) context:nil];
+
+
+    
     return view;
+
 }
 
-- (void)setup{
-    self.backgroundColor =[UIColor clearColor];
-    NSBundle *bundle = [NSBundle bundleForClass:self.class];
-
-    NSURL *url = [bundle URLForResource:@"MFScanQR" withExtension:@"bundle"];
-    NSBundle *imageBundle = [NSBundle bundleWithURL:url];
-    NSString *path = [imageBundle pathForResource:@"ScanQR1_16x16_" ofType:@"png"];
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSString *,id> *)change context:(void *)context{
     
-    UIImageView *imageViewQR1 =[[UIImageView alloc] initWithImage:[UIImage imageWithContentsOfFile:path]];
+    
+//    if ([_line.layer animationForKey:@"animation"]) {
+//        [_line.layer removeAllAnimations];
+//    }
+//    [self startLineAnimate];
+    CAKeyframeAnimation* animation =(CAKeyframeAnimation*)[_line.layer animationForKey:@"animation"];
+
+    if (animation) {
+    CGMutablePathRef thePath = CGPathCreateMutable();
+
+    CGPathMoveToPoint(thePath, NULL, self.bounds.size.width/2, 0);
+    
+    CGPathAddLineToPoint(thePath, NULL, self.bounds.size.width/2, 180);
+    
+    animation.path = thePath;
+
+    CGPathRelease(thePath);
+
+    }else{
+    [self startLineAnimate];
+    }
+}
+
+- (void)setupScanLine{
+   
+}
+- (void)drawRect:(CGRect)rect{
+    
+}
+- (void)setup{
+    self.layer.borderColor =[UIColor whiteColor].CGColor;
+    
+    self.layer.borderWidth =0.3;
+    
+    self.backgroundColor =[UIColor clearColor];
+    
+    UIImageView *imageViewQR1 =[[UIImageView alloc] initWithImage:[UIImage imageNamed:@"MFScanQR.bundle/ScanQR1_16x16_"]];
     imageViewQR1.translatesAutoresizingMaskIntoConstraints =NO;
     [self addSubview:imageViewQR1];
     [self addConstraint:[NSLayoutConstraint constraintWithItem:imageViewQR1 attribute:(NSLayoutAttributeLeft) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeLeft) multiplier:1 constant:0]];
     [self addConstraint:[NSLayoutConstraint constraintWithItem:imageViewQR1 attribute:(NSLayoutAttributeTop) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeTop) multiplier:1 constant:0]];
     
-    path = [imageBundle pathForResource:@"ScanQR2_16x16_" ofType:@"png"];
 
-    UIImageView *imageViewQR2 =[[UIImageView alloc] initWithImage:[UIImage imageWithContentsOfFile:path]];
+    UIImageView *imageViewQR2 =[[UIImageView alloc] initWithImage:[UIImage imageNamed:@"MFScanQR.bundle/ScanQR2_16x16_"]];
     imageViewQR2.translatesAutoresizingMaskIntoConstraints =NO;
     [self addSubview:imageViewQR2];
     [self addConstraint:[NSLayoutConstraint constraintWithItem:imageViewQR2 attribute:(NSLayoutAttributeRight) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeRight) multiplier:1 constant:0]];
     [self addConstraint:[NSLayoutConstraint constraintWithItem:imageViewQR2 attribute:(NSLayoutAttributeTop) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeTop) multiplier:1 constant:0]];
     
-    path = [imageBundle pathForResource:@"ScanQR3_16x16_" ofType:@"png"];
-
-    UIImageView *imageViewQR3 =[[UIImageView alloc] initWithImage:[UIImage imageWithContentsOfFile:path]];
+    UIImageView *imageViewQR3 =[[UIImageView alloc] initWithImage:[UIImage imageNamed:@"MFScanQR.bundle/ScanQR3_16x16_"]];
     imageViewQR3.translatesAutoresizingMaskIntoConstraints =NO;
     [self addSubview:imageViewQR3];
     [self addConstraint:[NSLayoutConstraint constraintWithItem:imageViewQR3 attribute:(NSLayoutAttributeLeft) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeLeft) multiplier:1 constant:0]];
     [self addConstraint:[NSLayoutConstraint constraintWithItem:imageViewQR3 attribute:(NSLayoutAttributeBottom) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeBottom) multiplier:1 constant:0]];
     
-    path = [imageBundle pathForResource:@"ScanQR4_16x16_" ofType:@"png"];
 
-    UIImageView *imageViewQR4 =[[UIImageView alloc] initWithImage:[UIImage imageWithContentsOfFile:path]];
+    UIImageView *imageViewQR4 =[[UIImageView alloc] initWithImage:[UIImage imageNamed:@"MFScanQR.bundle/ScanQR4_16x16_"]];
     imageViewQR4.translatesAutoresizingMaskIntoConstraints =NO;
     [self addSubview:imageViewQR4];
     [self addConstraint:[NSLayoutConstraint constraintWithItem:imageViewQR4 attribute:(NSLayoutAttributeRight) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeRight) multiplier:1 constant:0]];
     [self addConstraint:[NSLayoutConstraint constraintWithItem:imageViewQR4 attribute:(NSLayoutAttributeBottom) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeBottom) multiplier:1 constant:0]];
     
-}
+    _line =[[UIImageView alloc] initWithImage:[UIImage imageNamed:@"MFScanQR.bundle/ff_QRCodeScanLine_320x12_"]];
+    _line.translatesAutoresizingMaskIntoConstraints =NO;
+    [self addSubview:_line];
+    _lineY=[NSLayoutConstraint constraintWithItem:_line attribute:(NSLayoutAttributeTop) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeTop) multiplier:1 constant:0];
 
+    [self addConstraint:_lineY];
+    [self addConstraint:[NSLayoutConstraint constraintWithItem:_line attribute:(NSLayoutAttributeLeft) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeLeft) multiplier:1 constant:0]];
+    [self addConstraint:[NSLayoutConstraint constraintWithItem:_line attribute:(NSLayoutAttributeRight) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeRight) multiplier:1 constant:0]];
+    //[self layoutIfNeeded];
+
+   // [self performSelector:@selector(startLineAnimate) withObject:nil afterDelay:0.3];
+}
+- (void)startLineAnimate{
+//    [UIView animateWithDuration:1 delay:0 options:(UIViewAnimationOptionRepeat | UIViewAnimationOptionCurveLinear) animations:^{
+//        _lineY.constant = self.bounds.size.height - 12;
+//        [self layoutIfNeeded];
+//    } completion:^(BOOL finished) {
+//        
+//    }];
+    CAKeyframeAnimation *animation = [CAKeyframeAnimation animationWithKeyPath:@"position"];
+    
+    CGFloat animationDuration = 1;
+    
+    CGMutablePathRef thePath = CGPathCreateMutable();
+    
+    CGPathMoveToPoint(thePath, NULL, self.bounds.size.width/2, 0);
+    
+    CGPathAddLineToPoint(thePath, NULL, self.bounds.size.width/2, 180);
+    
+    animation.path = thePath;
+    
+    animation.duration = animationDuration;
+    
+    animation.beginTime = 0;
+    
+    animation.repeatCount=CGFLOAT_MAX;
+    
+    animation.removedOnCompletion=NO;
+    
+    animation.timingFunction=[CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionLinear];
+    
+    CGPathRelease(thePath);
+    
+    [_line.layer addAnimation:animation forKey:@"animation"];
+}
 @end
 
 
