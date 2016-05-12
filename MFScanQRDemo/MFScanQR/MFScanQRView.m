@@ -77,7 +77,7 @@
         _output = [[AVCaptureMetadataOutput alloc]init];
         
         //dispatch_get_main_queue()
-        [_output setMetadataObjectsDelegate:self queue:dispatch_get_global_queue(0, 0)];
+        [_output setMetadataObjectsDelegate:self queue:dispatch_get_main_queue()];
         
         _session = [[AVCaptureSession alloc]init];
         
@@ -118,7 +118,7 @@
 
 
 - (void)updateOutputInterest{
-    CGFloat width =MIN(self.bounds.size.width, self.bounds.size.height)*0.6;
+    CGFloat width =MIN(self.bounds.size.width, self.bounds.size.height)*0.7;
     if (_scanInterestView ==nil) {
         _scanInterestView =[MFScanInterestView scanInterestView];
         _scanInterestView.translatesAutoresizingMaskIntoConstraints =NO;
@@ -165,11 +165,21 @@
 }
 - (void)startRunning{
     [_session startRunning];
+    [self scanCodeBegin];
 }
 
 - (void)stopRunning{
     [_session stopRunning];
+    [self scanCodeEnd];
+}
 
+- (void)scanCodeBegin{
+    _isScanCodeFinish =NO;
+
+}
+
+- (void)scanCodeEnd{
+    _isScanCodeFinish =YES;
 }
 - (void)avStatusCallback:(void(^)(BOOL b))callback{
 
@@ -227,13 +237,14 @@
 static SystemSoundID shake_sound_male_id = 0;
 
 -(void)captureOutput:(AVCaptureOutput *)captureOutput didOutputMetadataObjects:(NSArray *)metadataObjects fromConnection:(AVCaptureConnection *)connection{
+    /*
     if (metadataObjects.count>0) {
-        //[session stopRunning];
+
         AVMetadataMachineReadableCodeObject * metadataObject = [metadataObjects objectAtIndex : 0 ];
         //输出扫描字符串
         NSLog(@"%@",metadataObject.stringValue);
     }
-    
+    */
     if (self.isScanCodeFinish) {
         return;
     }else{
@@ -260,7 +271,15 @@ static SystemSoundID shake_sound_male_id = 0;
 
 
 - (void)dealloc{
+    _avLayer =nil;
+    _session =nil;
+    _output =nil;
+    _mask =nil;
+    _scanInterestView =nil;
     [self removeObserver:self forKeyPath:@"frame" context:nil];
+
+    [self removeObserver:self forKeyPath:@"bounds" context:nil];
+
 }
 
 
@@ -292,34 +311,13 @@ static SystemSoundID shake_sound_male_id = 0;
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSString *,id> *)change context:(void *)context{
     
     
-//    if ([_line.layer animationForKey:@"animation"]) {
-//        [_line.layer removeAllAnimations];
-//    }
-//    [self startLineAnimate];
-    CAKeyframeAnimation* animation =(CAKeyframeAnimation*)[_line.layer animationForKey:@"animation"];
-
-    if (animation) {
-    CGMutablePathRef thePath = CGPathCreateMutable();
-
-    CGPathMoveToPoint(thePath, NULL, self.bounds.size.width/2, 0);
-    
-    CGPathAddLineToPoint(thePath, NULL, self.bounds.size.width/2, 180);
-    
-    animation.path = thePath;
-
-    CGPathRelease(thePath);
-
-    }else{
-    [self startLineAnimate];
+    if ([_line.layer animationForKey:@"animation"]) {
+        [_line.layer removeAllAnimations];
     }
+    [self startLineAnimate];
 }
 
-- (void)setupScanLine{
-   
-}
-- (void)drawRect:(CGRect)rect{
-    
-}
+
 - (void)setup{
     self.layer.borderColor =[UIColor whiteColor].CGColor;
     
@@ -330,28 +328,28 @@ static SystemSoundID shake_sound_male_id = 0;
     UIImageView *imageViewQR1 =[[UIImageView alloc] initWithImage:[UIImage imageNamed:@"MFScanQR.bundle/ScanQR1_16x16_"]];
     imageViewQR1.translatesAutoresizingMaskIntoConstraints =NO;
     [self addSubview:imageViewQR1];
-    [self addConstraint:[NSLayoutConstraint constraintWithItem:imageViewQR1 attribute:(NSLayoutAttributeLeft) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeLeft) multiplier:1 constant:0]];
-    [self addConstraint:[NSLayoutConstraint constraintWithItem:imageViewQR1 attribute:(NSLayoutAttributeTop) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeTop) multiplier:1 constant:0]];
+    [self addConstraint:[NSLayoutConstraint constraintWithItem:imageViewQR1 attribute:(NSLayoutAttributeLeft) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeLeft) multiplier:1 constant:.3]];
+    [self addConstraint:[NSLayoutConstraint constraintWithItem:imageViewQR1 attribute:(NSLayoutAttributeTop) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeTop) multiplier:1 constant:.3]];
     
 
     UIImageView *imageViewQR2 =[[UIImageView alloc] initWithImage:[UIImage imageNamed:@"MFScanQR.bundle/ScanQR2_16x16_"]];
     imageViewQR2.translatesAutoresizingMaskIntoConstraints =NO;
     [self addSubview:imageViewQR2];
-    [self addConstraint:[NSLayoutConstraint constraintWithItem:imageViewQR2 attribute:(NSLayoutAttributeRight) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeRight) multiplier:1 constant:0]];
-    [self addConstraint:[NSLayoutConstraint constraintWithItem:imageViewQR2 attribute:(NSLayoutAttributeTop) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeTop) multiplier:1 constant:0]];
+    [self addConstraint:[NSLayoutConstraint constraintWithItem:imageViewQR2 attribute:(NSLayoutAttributeRight) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeRight) multiplier:1 constant:-.3]];
+    [self addConstraint:[NSLayoutConstraint constraintWithItem:imageViewQR2 attribute:(NSLayoutAttributeTop) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeTop) multiplier:1 constant:.3]];
     
     UIImageView *imageViewQR3 =[[UIImageView alloc] initWithImage:[UIImage imageNamed:@"MFScanQR.bundle/ScanQR3_16x16_"]];
     imageViewQR3.translatesAutoresizingMaskIntoConstraints =NO;
     [self addSubview:imageViewQR3];
-    [self addConstraint:[NSLayoutConstraint constraintWithItem:imageViewQR3 attribute:(NSLayoutAttributeLeft) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeLeft) multiplier:1 constant:0]];
-    [self addConstraint:[NSLayoutConstraint constraintWithItem:imageViewQR3 attribute:(NSLayoutAttributeBottom) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeBottom) multiplier:1 constant:0]];
+    [self addConstraint:[NSLayoutConstraint constraintWithItem:imageViewQR3 attribute:(NSLayoutAttributeLeft) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeLeft) multiplier:1 constant:.3]];
+    [self addConstraint:[NSLayoutConstraint constraintWithItem:imageViewQR3 attribute:(NSLayoutAttributeBottom) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeBottom) multiplier:1 constant:-.3]];
     
 
     UIImageView *imageViewQR4 =[[UIImageView alloc] initWithImage:[UIImage imageNamed:@"MFScanQR.bundle/ScanQR4_16x16_"]];
     imageViewQR4.translatesAutoresizingMaskIntoConstraints =NO;
     [self addSubview:imageViewQR4];
-    [self addConstraint:[NSLayoutConstraint constraintWithItem:imageViewQR4 attribute:(NSLayoutAttributeRight) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeRight) multiplier:1 constant:0]];
-    [self addConstraint:[NSLayoutConstraint constraintWithItem:imageViewQR4 attribute:(NSLayoutAttributeBottom) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeBottom) multiplier:1 constant:0]];
+    [self addConstraint:[NSLayoutConstraint constraintWithItem:imageViewQR4 attribute:(NSLayoutAttributeRight) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeRight) multiplier:1 constant:-.3]];
+    [self addConstraint:[NSLayoutConstraint constraintWithItem:imageViewQR4 attribute:(NSLayoutAttributeBottom) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeBottom) multiplier:1 constant:-.3]];
     
     _line =[[UIImageView alloc] initWithImage:[UIImage imageNamed:@"MFScanQR.bundle/ff_QRCodeScanLine_320x12_"]];
     _line.translatesAutoresizingMaskIntoConstraints =NO;
@@ -366,12 +364,7 @@ static SystemSoundID shake_sound_male_id = 0;
    // [self performSelector:@selector(startLineAnimate) withObject:nil afterDelay:0.3];
 }
 - (void)startLineAnimate{
-//    [UIView animateWithDuration:1 delay:0 options:(UIViewAnimationOptionRepeat | UIViewAnimationOptionCurveLinear) animations:^{
-//        _lineY.constant = self.bounds.size.height - 12;
-//        [self layoutIfNeeded];
-//    } completion:^(BOOL finished) {
-//        
-//    }];
+
     CAKeyframeAnimation *animation = [CAKeyframeAnimation animationWithKeyPath:@"position"];
     
     CGFloat animationDuration = 1;
@@ -397,6 +390,10 @@ static SystemSoundID shake_sound_male_id = 0;
     CGPathRelease(thePath);
     
     [_line.layer addAnimation:animation forKey:@"animation"];
+}
+- (void)dealloc{
+    [self removeObserver:self forKeyPath:@"bounds" context:nil];
+
 }
 @end
 

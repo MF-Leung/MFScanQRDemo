@@ -29,6 +29,11 @@ typedef void(^MFAVStatusDeniedCallback)(void);
 - (void)startRunning;
 
 - (void)stopRunning;
+
+- (void)scanCodeBegin;
+
+- (void)scanCodeEnd;
+
 @end
 @interface MFScanInterestView : UIView
 
