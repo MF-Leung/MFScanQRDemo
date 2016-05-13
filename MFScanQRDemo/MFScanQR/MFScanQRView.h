@@ -12,21 +12,34 @@
 
 
 
-typedef void(^MFMetadataCallback)(AVCaptureOutput *captureOutput, NSArray *metadataObjects, AVCaptureConnection *connection);
+typedef BOOL(^MFMetadataCallback)(NSString *metadata);
 typedef void(^MFAVStatusDeniedCallback)(void);
 
 
 @class MFScanInterestView;
+@class MFScanIndicatorView;
+
 @interface MFScanQRView : UIView
 @property (strong, nonatomic, readonly)AVCaptureVideoPreviewLayer * avLayer ;
+
 @property (strong, nonatomic, readonly)AVCaptureSession *session;
+
 @property (strong, nonatomic, readonly)AVCaptureMetadataOutput * output;
+
 @property (strong, nonatomic, readonly)CAShapeLayer *mask;
+
 @property (strong, nonatomic, readonly)MFScanInterestView *scanInterestView;
+
+@property (strong, nonatomic, readonly)MFScanIndicatorView *scanIndicatorView;
+
 @property(strong, nonatomic, readonly)MFMetadataCallback metadataCallback;
+
 @property(strong, nonatomic, readonly)MFAVStatusDeniedCallback statusDeniedCallback;
+
 + (instancetype)scanQRViewWithFrame:(CGRect)frame withMetadataCallback:(MFMetadataCallback)metadataCallback withAVStatusDeniedCallback:(MFAVStatusDeniedCallback)deniedCallback;
+
 - (void)startRunning;
+
 
 - (void)stopRunning;
 
@@ -35,12 +48,32 @@ typedef void(^MFAVStatusDeniedCallback)(void);
 - (void)scanCodeEnd;
 
 @end
+
+
+#pragma mark MFScanInterestView
+
 @interface MFScanInterestView : UIView
 
-
 @property(strong, nonatomic) NSLayoutConstraint *widthLayout;
+
 @property(strong, nonatomic) NSLayoutConstraint *heightLayout;
 
-
 + (instancetype)scanInterestView;
+
+- (void)stopLineAnimate;
+
+- (void)startLineAnimate;
+@end
+
+
+#pragma mark MFScanIndicatorView
+
+@interface MFScanIndicatorView : UIView
+
++ (instancetype)scanIndicatorView;
+
+- (void)show;
+
+- (void)dismiss;
+
 @end

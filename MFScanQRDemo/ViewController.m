@@ -9,57 +9,63 @@
 #import "ViewController.h"
 #import "MFScanQRView.h"
 @interface ViewController ()
-
+@property (strong, nonatomic)MFScanQRView *scanQRView;
 @end
-
 @implementation ViewController
-MFScanQRView *v;
 - (void)viewDidLoad {
     [super viewDidLoad];
-    
-    // Do any additional setup after loading the view, typically from a nib.
+    self.navigationController.navigationBar.barTintColor =[UIColor blackColor];
+
 }
-- (void)viewDidAppear:(BOOL)animated{
-    [super viewDidAppear:animated];
-    v =[MFScanQRView scanQRViewWithFrame:self.view.bounds withMetadataCallback:^(AVCaptureOutput *captureOutput, NSArray *metadataObjects, AVCaptureConnection *connection) {
+
+- (void)viewWillAppear:(BOOL)animated{
+    [super viewWillAppear:animated];
+    _scanQRView =[MFScanQRView scanQRViewWithFrame:CGRectZero withMetadataCallback:^BOOL(NSString *metadata) {
+        
+        return YES;
         
     } withAVStatusDeniedCallback:nil];
-  // v.translatesAutoresizingMaskIntoConstraints =NO;
-    [self.view addSubview:v];
-
-//    [self.view addConstraint:[NSLayoutConstraint constraintWithItem:v attribute:(NSLayoutAttributeLeft) relatedBy:(NSLayoutRelationEqual) toItem:self.view attribute:(NSLayoutAttributeLeft) multiplier:1 constant:0]];
-//    [self.view addConstraint:[NSLayoutConstraint constraintWithItem:v attribute:(NSLayoutAttributeRight) relatedBy:(NSLayoutRelationEqual) toItem:self.view attribute:(NSLayoutAttributeRight) multiplier:1 constant:0]];
-//    [self.view addConstraint:[NSLayoutConstraint constraintWithItem:v attribute:(NSLayoutAttributeTop) relatedBy:(NSLayoutRelationEqual) toItem:self.view attribute:(NSLayoutAttributeTop) multiplier:1 constant:0]];
-//    [self.view addConstraint:[NSLayoutConstraint constraintWithItem:v attribute:(NSLayoutAttributeBottom) relatedBy:(NSLayoutRelationEqual) toItem:self.view attribute:(NSLayoutAttributeBottom) multiplier:1 constant:0]];
-//    
-//    [v updateConstraintsIfNeeded];
-    [v startRunning];
+    
+    _scanQRView.translatesAutoresizingMaskIntoConstraints =NO;
+    [self.view addSubview:_scanQRView];
+    
+    [self.view addConstraint:[NSLayoutConstraint constraintWithItem:_scanQRView attribute:(NSLayoutAttributeLeft) relatedBy:(NSLayoutRelationEqual) toItem:self.view attribute:(NSLayoutAttributeLeft) multiplier:1 constant:0]];
+    
+    [self.view addConstraint:[NSLayoutConstraint constraintWithItem:_scanQRView attribute:(NSLayoutAttributeRight) relatedBy:(NSLayoutRelationEqual) toItem:self.view attribute:(NSLayoutAttributeRight) multiplier:1 constant:0]];
+    
+    [self.view addConstraint:[NSLayoutConstraint constraintWithItem:_scanQRView attribute:(NSLayoutAttributeTop) relatedBy:(NSLayoutRelationEqual) toItem:self.view attribute:(NSLayoutAttributeTop) multiplier:1 constant:0]];
+    
+    [self.view addConstraint:[NSLayoutConstraint constraintWithItem:_scanQRView attribute:(NSLayoutAttributeBottom) relatedBy:(NSLayoutRelationEqual) toItem:self.view attribute:(NSLayoutAttributeBottom) multiplier:1 constant:0]];
+    
+    [_scanQRView startRunning];
     
 }
+
+- (void)viewDidAppear:(BOOL)animated{
+    [super viewDidAppear:animated];
+    
+  
+}
+
 - (void)willAnimateRotationToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation duration:(NSTimeInterval)duration{
     
     switch (toInterfaceOrientation) {
         case UIInterfaceOrientationPortrait:
-            [(AVCaptureVideoPreviewLayer*)v.avLayer connection].videoOrientation =AVCaptureVideoOrientationPortrait;
+            [(AVCaptureVideoPreviewLayer*)_scanQRView.avLayer connection].videoOrientation =AVCaptureVideoOrientationPortrait;
             break;
         case UIInterfaceOrientationPortraitUpsideDown:
-            [(AVCaptureVideoPreviewLayer*)v.avLayer connection].videoOrientation =AVCaptureVideoOrientationPortraitUpsideDown;
+            [(AVCaptureVideoPreviewLayer*)_scanQRView.avLayer connection].videoOrientation =AVCaptureVideoOrientationPortraitUpsideDown;
             break;
         case UIInterfaceOrientationLandscapeLeft:
-            [(AVCaptureVideoPreviewLayer*)v.avLayer connection].videoOrientation =AVCaptureVideoOrientationLandscapeLeft;
+            [(AVCaptureVideoPreviewLayer*)_scanQRView.avLayer connection].videoOrientation =AVCaptureVideoOrientationLandscapeLeft;
             break;
         case UIInterfaceOrientationLandscapeRight:
-            [(AVCaptureVideoPreviewLayer*)v.avLayer connection].videoOrientation =AVCaptureVideoOrientationLandscapeRight;
+            [(AVCaptureVideoPreviewLayer*)_scanQRView.avLayer connection].videoOrientation =AVCaptureVideoOrientationLandscapeRight;
             break;
         default:
             break;
     }
-    v.frame =self.view.bounds;
-}
-
-- (void)didReceiveMemoryWarning {
-    [super didReceiveMemoryWarning];
-    // Dispose of any resources that can be recreated.
+   // _scanQRView.frame =self.view.bounds;
 }
 
 @end

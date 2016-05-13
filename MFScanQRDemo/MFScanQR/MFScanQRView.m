@@ -7,22 +7,36 @@
 //
 
 #import "MFScanQRView.h"
-@interface MFScanQRView ()<AVCaptureMetadataOutputObjectsDelegate>
-@property (strong, nonatomic)AVCaptureVideoPreviewLayer * avLayer ;
+@interface MFScanQRView ()<AVCaptureMetadataOutputObjectsDelegate,UIAlertViewDelegate>
+
+@property (strong, nonatomic)AVCaptureVideoPreviewLayer * avLayer;
+
 @property (strong, nonatomic)AVCaptureSession *session;
+
 @property (strong, nonatomic)AVCaptureMetadataOutput * output;
+
 @property (strong, nonatomic)CAShapeLayer *mask;
+
 @property (strong, nonatomic)MFScanInterestView *scanInterestView;
+
+@property (strong, nonatomic)MFScanIndicatorView *scanIndicatorView;
+
+
 @property (strong, nonatomic)MFMetadataCallback metadataCallback;
+
 @property (strong, nonatomic)MFAVStatusDeniedCallback statusDeniedCallback;
+
 @property (nonatomic)BOOL isScanCodeFinish;
 
 @end
 
 @implementation MFScanQRView
 + (instancetype)scanQRViewWithFrame:(CGRect)frame withMetadataCallback:(MFMetadataCallback)metadataCallback withAVStatusDeniedCallback:(MFAVStatusDeniedCallback)statusDeniedCallback{
+    
     MFScanQRView *view =[[MFScanQRView alloc] init];
+  
     view.backgroundColor =[UIColor blackColor];
+    
     [view setupWithFrame:frame withMetadataCallback:metadataCallback withAVStatusDeniedCallback:statusDeniedCallback];
     
     return view;
@@ -108,7 +122,7 @@
         
         [self updateOutputInterest];
         
-        
+        [self setupIndicatorView];
     }
 }];
    
@@ -116,6 +130,23 @@
    
 }
 
+- (void)setupIndicatorView{
+    _scanIndicatorView =[MFScanIndicatorView scanIndicatorView];
+    
+    _scanIndicatorView.translatesAutoresizingMaskIntoConstraints =NO;
+    
+    [self addSubview:_scanIndicatorView];
+    
+    [self addConstraint:[NSLayoutConstraint constraintWithItem:_scanIndicatorView attribute:(NSLayoutAttributeTop) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeTop) multiplier:1 constant:0]];
+    
+    [self addConstraint:[NSLayoutConstraint constraintWithItem:_scanIndicatorView attribute:(NSLayoutAttributeBottom) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeBottom) multiplier:1 constant:0]];
+    
+    [self addConstraint:[NSLayoutConstraint constraintWithItem:_scanIndicatorView attribute:(NSLayoutAttributeLeft) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeLeft) multiplier:1 constant:0]];
+    
+    [self addConstraint:[NSLayoutConstraint constraintWithItem:_scanIndicatorView attribute:(NSLayoutAttributeRight) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeRight) multiplier:1 constant:0]];
+    
+    [_scanIndicatorView dismiss];
+}
 
 - (void)updateOutputInterest{
     CGFloat width =MIN(self.bounds.size.width, self.bounds.size.height)*0.7;
@@ -197,9 +228,9 @@
             }else{
                 UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"提示"
                                                                 message:@"请在设备的\"设置-隐私-相机\"中允许访问相机。"
-                                                               delegate:nil
+                                                               delegate:self
                                                       cancelButtonTitle:@"确定"
-                                                      otherButtonTitles:nil];
+                                                      otherButtonTitles:@"去设置",nil];
                 [alert show];
             }
 
@@ -238,16 +269,13 @@ static SystemSoundID shake_sound_male_id = 0;
 
 -(void)captureOutput:(AVCaptureOutput *)captureOutput didOutputMetadataObjects:(NSArray *)metadataObjects fromConnection:(AVCaptureConnection *)connection{
     /*
-    if (metadataObjects.count>0) {
-
-        AVMetadataMachineReadableCodeObject * metadataObject = [metadataObjects objectAtIndex : 0 ];
-        //输出扫描字符串
-        NSLog(@"%@",metadataObject.stringValue);
-    }
+    
     */
     if (self.isScanCodeFinish) {
         return;
     }else{
+       
+        
         self.isScanCodeFinish =YES;
         
         NSBundle *bundle = [NSBundle bundleForClass:self.class];
@@ -257,25 +285,54 @@ static SystemSoundID shake_sound_male_id = 0;
         NSBundle *audioBundle = [NSBundle bundleWithURL:url];
         
         AudioServicesCreateSystemSoundID((__bridge CFURLRef)[NSURL fileURLWithPath:[audioBundle pathForResource:@"qrcode_found" ofType:@"wav"]],&shake_sound_male_id);
+        
         AudioServicesPlaySystemSound(shake_sound_male_id);
     }
     
     AudioServicesPlaySystemSound(shake_sound_male_id);
     
-    if (self.metadataCallback) {
-        self.metadataCallback(captureOutput, metadataObjects, connection);
-    }
-    
-    
+    if (metadataObjects.count>0) {
+        
+        AVMetadataMachineReadableCodeObject * metadataObject = [metadataObjects objectAtIndex : 0 ];
+
+    [_scanIndicatorView show];
+        
+    [_scanInterestView stopLineAnimate];
+   
+    [self performSelector:@selector(callback:) withObject:metadataObject.stringValue afterDelay:1];
+   }
+
 }
 
+- (void)callback:(NSString*)metadata{
+    BOOL isRight =NO;
+    if (self.metadataCallback) {
+        isRight =self.metadataCallback(metadata);
+    }
+    
+    if(isRight ==NO){
+        [self scanCodeBegin];
+        
+    }else{
+        
+        //默认扫描成功后不再进入扫码回调,如需需要连续扫描,请自行调用scanCodeBegin方法
+       // [self performSelector:@selector(scanCodeBegin) withObject:nil afterDelay:1];
+    }
+    
+    [_scanIndicatorView dismiss];
+    [_scanInterestView startLineAnimate];
 
+}
+- (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex{
+    if (buttonIndex==1) {
+        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
+    }
+}
 - (void)dealloc{
-    _avLayer =nil;
-    _session =nil;
-    _output =nil;
-    _mask =nil;
-    _scanInterestView =nil;
+    [self stopRunning];
+    
+    [_scanInterestView stopLineAnimate];
+    
     [self removeObserver:self forKeyPath:@"frame" context:nil];
 
     [self removeObserver:self forKeyPath:@"bounds" context:nil];
@@ -363,11 +420,30 @@ static SystemSoundID shake_sound_male_id = 0;
 
    // [self performSelector:@selector(startLineAnimate) withObject:nil afterDelay:0.3];
 }
+- (void)stopLineAnimate{
+    
+    _line.alpha =1;
+
+    [UIView animateWithDuration:0.5 animations:^{
+        _line.alpha =0;
+        
+    } completion:^(BOOL finished) {
+        if ([_line.layer animationForKey:@"animation"]) {
+            [_line.layer removeAllAnimations];
+        }
+        _line.hidden = YES;
+        
+    }];
+    
+    
+    
+
+}
 - (void)startLineAnimate{
 
     CAKeyframeAnimation *animation = [CAKeyframeAnimation animationWithKeyPath:@"position"];
     
-    CGFloat animationDuration = 1;
+    CGFloat animationDuration = 2;
     
     CGMutablePathRef thePath = CGPathCreateMutable();
     
@@ -390,6 +466,17 @@ static SystemSoundID shake_sound_male_id = 0;
     CGPathRelease(thePath);
     
     [_line.layer addAnimation:animation forKey:@"animation"];
+    
+    _line.hidden =NO;
+    
+    _line.alpha =0;
+    
+    [UIView animateWithDuration:0.5 animations:^{
+        
+        _line.alpha =1;
+        
+    } completion:^(BOOL finished) {
+    }];
 }
 - (void)dealloc{
     [self removeObserver:self forKeyPath:@"bounds" context:nil];
@@ -397,4 +484,75 @@ static SystemSoundID shake_sound_male_id = 0;
 }
 @end
 
+@interface MFScanIndicatorView ()
 
+@property (strong, nonatomic) UIActivityIndicatorView * indicatorView;
+@end
+
+@implementation MFScanIndicatorView
+
++ (instancetype)scanIndicatorView{
+    MFScanIndicatorView *view =[[MFScanIndicatorView alloc] init];
+    
+    [view setup];
+    
+    return view;
+    
+}
+- (void)setup{
+    
+    self.backgroundColor =[UIColor colorWithRed:0 green:0 blue:0 alpha:0.5];
+    
+   _indicatorView =[[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:(UIActivityIndicatorViewStyleWhiteLarge)];
+    
+    _indicatorView.translatesAutoresizingMaskIntoConstraints =NO;
+    
+    [self addSubview:_indicatorView];
+    
+    [self addConstraint:[NSLayoutConstraint constraintWithItem:_indicatorView attribute:(NSLayoutAttributeCenterX) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeCenterX) multiplier:1 constant:0]];
+    
+    [self addConstraint:[NSLayoutConstraint constraintWithItem:_indicatorView attribute:(NSLayoutAttributeCenterY) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeCenterY) multiplier:1 constant:0]];
+    
+    UILabel *label =[[UILabel alloc] init];
+    
+    label.font =[UIFont systemFontOfSize:13];
+    
+    label.textColor =[UIColor whiteColor];
+    
+    label.text =@"Processing...";
+    
+    label.translatesAutoresizingMaskIntoConstraints =NO;
+    
+    [self addSubview:label];
+    
+    [self addConstraint:[NSLayoutConstraint constraintWithItem:label attribute:(NSLayoutAttributeTop) relatedBy:(NSLayoutRelationEqual) toItem:_indicatorView attribute:(NSLayoutAttributeBottom) multiplier:1 constant:16]];
+    
+    [self addConstraint:[NSLayoutConstraint constraintWithItem:label attribute:(NSLayoutAttributeCenterX) relatedBy:(NSLayoutRelationEqual) toItem:_indicatorView attribute:(NSLayoutAttributeCenterX) multiplier:1 constant:0]];
+
+}
+
+- (void)show{
+    self.hidden =NO;
+    self.alpha =0;
+
+    [UIView animateWithDuration:0.5 animations:^{
+        self.alpha =1;
+    } completion:^(BOOL finished) {
+    }];
+    [_indicatorView startAnimating];
+}
+
+- (void)dismiss{
+    self.alpha =1;
+
+    [UIView animateWithDuration:0.5 animations:^{
+        self.alpha =0;
+        
+    } completion:^(BOOL finished) {
+        self.hidden =YES;
+        
+        [_indicatorView stopAnimating];
+
+    }];
+}
+@end
