@@ -103,7 +103,7 @@
         
         _output.metadataObjectTypes=@[AVMetadataObjectTypeQRCode,AVMetadataObjectTypeEAN13Code, AVMetadataObjectTypeEAN8Code, AVMetadataObjectTypeCode128Code];
         //_avLayer =[[AVCaptureVideoPreviewLayer alloc] init];
-        _avLayer =self.layer;
+        _avLayer =(AVCaptureVideoPreviewLayer*)self.layer;
         
         
         [_avLayer setSession:_session];
@@ -320,12 +320,15 @@ static SystemSoundID shake_sound_male_id = 0;
     }
     
     [_scanIndicatorView dismiss];
+    
     [_scanInterestView startLineAnimate];
 
 }
 - (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex{
     if (buttonIndex==1) {
+        
         [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
+        
     }
 }
 - (void)dealloc{
