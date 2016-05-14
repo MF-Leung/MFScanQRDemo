@@ -546,17 +546,23 @@ static SystemSoundID shake_sound_male_id = 0;
 }
 
 - (void)show{
+    
     self.hidden =NO;
+    
     self.alpha =0;
 
     [UIView animateWithDuration:0.5 animations:^{
+        
         self.alpha =1;
+        
     } completion:^(BOOL finished) {
     }];
+    
     [_indicatorView startAnimating];
 }
 
 - (void)dismiss{
+    
     self.alpha =1;
 
     [UIView animateWithDuration:0.5 animations:^{
