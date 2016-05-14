@@ -150,8 +150,11 @@
 
 - (void)updateOutputInterest{
     CGFloat width =MIN(self.bounds.size.width, self.bounds.size.height)*0.7;
+    
     if (_scanInterestView ==nil) {
+        
         _scanInterestView =[MFScanInterestView scanInterestView];
+        
         _scanInterestView.translatesAutoresizingMaskIntoConstraints =NO;
         
         [self addSubview:_scanInterestView];
