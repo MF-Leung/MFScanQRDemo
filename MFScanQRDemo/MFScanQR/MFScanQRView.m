@@ -198,22 +198,29 @@
     
 }
 - (void)startRunning{
+    
     [_session startRunning];
+    
     [self scanCodeBegin];
 }
 
 - (void)stopRunning{
+    
     [_session stopRunning];
+    
     [self scanCodeEnd];
 }
 
 - (void)scanCodeBegin{
+    
     _isScanCodeFinish =NO;
 
 }
 
 - (void)scanCodeEnd{
+    
     _isScanCodeFinish =YES;
+    
 }
 - (void)avStatusCallback:(void(^)(BOOL b))callback{
 
@@ -271,9 +278,7 @@
 static SystemSoundID shake_sound_male_id = 0;
 
 -(void)captureOutput:(AVCaptureOutput *)captureOutput didOutputMetadataObjects:(NSArray *)metadataObjects fromConnection:(AVCaptureConnection *)connection{
-    /*
     
-    */
     if (self.isScanCodeFinish) {
         return;
     }else{
@@ -308,12 +313,17 @@ static SystemSoundID shake_sound_male_id = 0;
 }
 
 - (void)callback:(NSString*)metadata{
+    
     BOOL isRight =NO;
+    
     if (self.metadataCallback) {
+        
         isRight =self.metadataCallback(metadata);
+        
     }
     
     if(isRight ==NO){
+        
         [self scanCodeBegin];
         
     }else{
@@ -364,8 +374,6 @@ static SystemSoundID shake_sound_male_id = 0;
     [view setup];
     
     [view addObserver:view forKeyPath:@"bounds" options:(NSKeyValueObservingOptionNew) context:nil];
-
-
     
     return view;
 
