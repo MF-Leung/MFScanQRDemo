@@ -583,6 +583,7 @@ static SystemSoundID shake_sound_male_id = 0;
 
 }
 
+
 - (void)show:(BOOL)animation{
     
     if (animation) {
@@ -606,10 +607,13 @@ static SystemSoundID shake_sound_male_id = 0;
         self.alpha =1;
 
     }
-    
+
     [_indicatorView startAnimating];
 
+    
+
 }
+
 
 
 - (void)dismiss:(BOOL)animation{
