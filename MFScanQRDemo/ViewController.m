@@ -25,7 +25,7 @@
         return YES;
         
     } withAVStatusDeniedCallback:nil];
-    
+    _scanQRView.isAnimation =YES;
     _scanQRView.translatesAutoresizingMaskIntoConstraints =NO;
     [self.view addSubview:_scanQRView];
     

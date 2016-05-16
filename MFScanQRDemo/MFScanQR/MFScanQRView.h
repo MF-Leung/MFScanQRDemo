@@ -36,6 +36,8 @@ typedef void(^MFAVStatusDeniedCallback)(void);
 
 @property(strong, nonatomic, readonly)MFAVStatusDeniedCallback statusDeniedCallback;
 
+@property (nonatomic)BOOL isAnimation;
+
 + (instancetype)scanQRViewWithFrame:(CGRect)frame withMetadataCallback:(MFMetadataCallback)metadataCallback withAVStatusDeniedCallback:(MFAVStatusDeniedCallback)deniedCallback;
 
 - (void)startRunning;
@@ -72,8 +74,8 @@ typedef void(^MFAVStatusDeniedCallback)(void);
 
 + (instancetype)scanIndicatorView;
 
-- (void)show;
+- (void)show:(BOOL)animation;
 
-- (void)dismiss;
+- (void)dismiss:(BOOL)animation;
 
 @end

@@ -72,6 +72,40 @@
    
 }
 
+- (void)drawRect:(CGRect)rect{
+    [super drawRect:rect];
+    
+    if (_isAnimation) {
+        
+        
+        CGFloat constant =_scanInterestView.widthLayout.constant;
+        
+        _scanInterestView.widthLayout.constant =0;
+        
+        _scanInterestView.heightLayout.constant =0;
+        
+        [self layoutIfNeeded];
+
+        [_scanInterestView stopLineAnimate];
+        
+        
+        [UIView animateWithDuration:0.3 animations:^{
+            
+            _scanInterestView.widthLayout.constant =constant;
+            
+            _scanInterestView.heightLayout.constant =constant;
+            
+            [self layoutIfNeeded];
+
+        } completion:^(BOOL finished) {
+            [_scanInterestView startLineAnimate];
+
+        }];
+
+        
+    }
+}
+
 +(Class)layerClass{
     return [AVCaptureVideoPreviewLayer class];
 }
@@ -145,13 +179,16 @@
     
     [self addConstraint:[NSLayoutConstraint constraintWithItem:_scanIndicatorView attribute:(NSLayoutAttributeRight) relatedBy:(NSLayoutRelationEqual) toItem:self attribute:(NSLayoutAttributeRight) multiplier:1 constant:0]];
     
-    [_scanIndicatorView dismiss];
+    [_scanIndicatorView dismiss:NO];
 }
 
 - (void)updateOutputInterest{
     CGFloat width =MIN(self.bounds.size.width, self.bounds.size.height)*0.7;
+    
     if (_scanInterestView ==nil) {
+        
         _scanInterestView =[MFScanInterestView scanInterestView];
+        
         _scanInterestView.translatesAutoresizingMaskIntoConstraints =NO;
         
         [self addSubview:_scanInterestView];
@@ -195,22 +232,29 @@
     
 }
 - (void)startRunning{
+    
     [_session startRunning];
+    
     [self scanCodeBegin];
 }
 
 - (void)stopRunning{
+    
     [_session stopRunning];
+    
     [self scanCodeEnd];
 }
 
 - (void)scanCodeBegin{
+    
     _isScanCodeFinish =NO;
 
 }
 
 - (void)scanCodeEnd{
+    
     _isScanCodeFinish =YES;
+    
 }
 - (void)avStatusCallback:(void(^)(BOOL b))callback{
 
@@ -268,9 +312,7 @@
 static SystemSoundID shake_sound_male_id = 0;
 
 -(void)captureOutput:(AVCaptureOutput *)captureOutput didOutputMetadataObjects:(NSArray *)metadataObjects fromConnection:(AVCaptureConnection *)connection{
-    /*
     
-    */
     if (self.isScanCodeFinish) {
         return;
     }else{
@@ -295,7 +337,7 @@ static SystemSoundID shake_sound_male_id = 0;
         
         AVMetadataMachineReadableCodeObject * metadataObject = [metadataObjects objectAtIndex : 0 ];
 
-    [_scanIndicatorView show];
+    [_scanIndicatorView show:YES];
         
     [_scanInterestView stopLineAnimate];
    
@@ -305,12 +347,17 @@ static SystemSoundID shake_sound_male_id = 0;
 }
 
 - (void)callback:(NSString*)metadata{
+    
     BOOL isRight =NO;
+    
     if (self.metadataCallback) {
+        
         isRight =self.metadataCallback(metadata);
+        
     }
     
     if(isRight ==NO){
+        
         [self scanCodeBegin];
         
     }else{
@@ -319,7 +366,7 @@ static SystemSoundID shake_sound_male_id = 0;
        // [self performSelector:@selector(scanCodeBegin) withObject:nil afterDelay:1];
     }
     
-    [_scanIndicatorView dismiss];
+    [_scanIndicatorView dismiss:YES];
     
     [_scanInterestView startLineAnimate];
 
@@ -361,8 +408,6 @@ static SystemSoundID shake_sound_male_id = 0;
     [view setup];
     
     [view addObserver:view forKeyPath:@"bounds" options:(NSKeyValueObservingOptionNew) context:nil];
-
-
     
     return view;
 
@@ -372,9 +417,13 @@ static SystemSoundID shake_sound_male_id = 0;
     
     
     if ([_line.layer animationForKey:@"animation"]) {
+        
         [_line.layer removeAllAnimations];
+        
+        //重新创建动画
+        [self startLineAnimate];
+
     }
-    [self startLineAnimate];
 }
 
 
@@ -534,28 +583,60 @@ static SystemSoundID shake_sound_male_id = 0;
 
 }
 
-- (void)show{
-    self.hidden =NO;
-    self.alpha =0;
-
-    [UIView animateWithDuration:0.5 animations:^{
-        self.alpha =1;
-    } completion:^(BOOL finished) {
-    }];
-    [_indicatorView startAnimating];
-}
-
-- (void)dismiss{
-    self.alpha =1;
-
-    [UIView animateWithDuration:0.5 animations:^{
+- (void)show:(BOOL)animation{
+    
+    if (animation) {
+        
+        self.hidden =NO;
+        
         self.alpha =0;
         
-    } completion:^(BOOL finished) {
+
+        
+        [UIView animateWithDuration:0.5 animations:^{
+            
+            self.alpha =1;
+            
+        } completion:^(BOOL finished) {
+        }];
+    }else{
+        
+        self.hidden =NO;
+        
+        self.alpha =1;
+
+    }
+    
+    [_indicatorView startAnimating];
+
+}
+
+
+- (void)dismiss:(BOOL)animation{
+    
+    if (animation) {
+        
+        self.alpha =1;
+        
+        [UIView animateWithDuration:0.5 animations:^{
+            
+            self.alpha =0;
+            
+        } completion:^(BOOL finished) {
+            
+            self.hidden =YES;
+            
+            [_indicatorView stopAnimating];
+            
+        }];
+    }else{
+        
+        self.alpha =0;
+
         self.hidden =YES;
         
         [_indicatorView stopAnimating];
-
-    }];
+    
+    }
 }
 @end
