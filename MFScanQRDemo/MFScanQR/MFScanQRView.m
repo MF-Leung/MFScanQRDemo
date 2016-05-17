@@ -86,8 +86,30 @@
         
         [self layoutIfNeeded];
 
-        [_scanInterestView stopLineAnimate];
+        [_scanInterestView stopLineAnimate:NO];
         
+       CGPathRef path= _mask.path ;
+        
+        UIBezierPath *maskPath = [UIBezierPath bezierPathWithRect:CGRectMake(0, 0, MAX(self.bounds.size.width, self.bounds.size.height), MAX(self.bounds.size.width, self.bounds.size.height))];
+        
+        UIBezierPath *cutoutPath;
+        
+        cutoutPath = [UIBezierPath bezierPathWithRect:CGRectMake(rect.size.width/2, rect.size.height/2, 0,0)];
+        
+        [maskPath appendPath:cutoutPath];
+        
+        
+        CABasicAnimation *anim = [CABasicAnimation animationWithKeyPath:@"path"];
+        anim.delegate = self;
+        anim.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+        anim.duration = 0.3;
+        anim.removedOnCompletion = NO;
+        anim.fillMode = kCAFillModeForwards;
+        anim.fromValue = (__bridge id)(maskPath.CGPath);
+        anim.toValue = (__bridge id)(path);
+        [_mask addAnimation:anim forKey:@"path"];
+        _mask.path = path;
+
         
         [UIView animateWithDuration:0.3 animations:^{
             
@@ -339,7 +361,7 @@ static SystemSoundID shake_sound_male_id = 0;
 
     [_scanIndicatorView show:YES];
         
-    [_scanInterestView stopLineAnimate];
+    [_scanInterestView stopLineAnimate:YES];
    
     [self performSelector:@selector(callback:) withObject:metadataObject.stringValue afterDelay:1];
    }
@@ -381,7 +403,7 @@ static SystemSoundID shake_sound_male_id = 0;
 - (void)dealloc{
     [self stopRunning];
     
-    [_scanInterestView stopLineAnimate];
+    [_scanInterestView stopLineAnimate:NO];
     
     [self removeObserver:self forKeyPath:@"frame" context:nil];
 
@@ -472,20 +494,25 @@ static SystemSoundID shake_sound_male_id = 0;
 
    // [self performSelector:@selector(startLineAnimate) withObject:nil afterDelay:0.3];
 }
-- (void)stopLineAnimate{
-    
-    _line.alpha =1;
-
-    [UIView animateWithDuration:0.5 animations:^{
+- (void)stopLineAnimate:(BOOL)b{
+    if (b) {
+        _line.alpha =1;
+        
+        [UIView animateWithDuration:0.5 animations:^{
+            _line.alpha =0;
+            
+        } completion:^(BOOL finished) {
+            if ([_line.layer animationForKey:@"animation"]) {
+                [_line.layer removeAllAnimations];
+            }
+            _line.hidden = YES;
+            
+        }];
+    }else{
         _line.alpha =0;
-        
-    } completion:^(BOOL finished) {
-        if ([_line.layer animationForKey:@"animation"]) {
-            [_line.layer removeAllAnimations];
-        }
         _line.hidden = YES;
-        
-    }];
+    }
+    
     
     
     

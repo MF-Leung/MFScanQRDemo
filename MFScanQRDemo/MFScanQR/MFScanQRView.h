@@ -62,7 +62,7 @@ typedef void(^MFAVStatusDeniedCallback)(void);
 
 + (instancetype)scanInterestView;
 
-- (void)stopLineAnimate;
+- (void)stopLineAnimate:(BOOL)b;
 
 - (void)startLineAnimate;
 @end
